@@ -8,6 +8,9 @@ import UsuarioSessao from '../models/UsuarioSessao.js';
 import UsuarioSessaoDesconto from '../models/UsuarioSessaoDesconto.js';
 import dateAux from '../utils/dateAux.js';
 import trataError from '../utils/trataError.js';
+import encrypt from './Crypto'
+import decrypt from './Descrypto'
+import jwt from 'jsonwebtoken';
 
 export default class UsuarioController {
   static #findUsuarioById = (id) => Usuario.findOne({ where: { id } });
@@ -41,6 +44,7 @@ export default class UsuarioController {
   };
 
   static #create = async (dados, res) => {
+    dados.senha = encrypt(dados.senha)
     const response = await Usuario.create(dados);
     return res.status(201).send({ message: 'Registro cadastrado com sucesso', data: response });
   };
@@ -50,7 +54,7 @@ export default class UsuarioController {
       let response = null;
       const { id } = req.params;
 
-      if (id) {
+      if (id) { 
         response = await this.#findUsuarioById(id) || [];
       } else {
         response = await Usuario.findAll({
@@ -308,5 +312,95 @@ export default class UsuarioController {
     } catch (error) {
       return trataError.internalError(res, error);
     }
-  };
+  }
+  static JuntarTabelas = async (req, res) => {
+    const junta = await sequelize.query(`
+        SELECT usuarios.id,
+          usuarios.nome,
+          usuarios.email,
+          usuarios.cpf,
+          usuarios.estudante,
+          usuarios.id_cargo,
+          usuarios.senha,
+          cargos.descricao
+    FROM
+    usuarios
+    INNER JOIN
+        cargos ON
+            usuarios.id_cargo = cargos.id;`).then((a) => a[0])
+            
+  return res.status(200).send(junta);
+  }
+  static login = async (req, res) => {
+    try {
+        const{
+            email,
+            senha
+        } = req.body;
+        let response = await Usuario.findOne({
+            where:{ 
+                email
+            }
+        }); 
+    if(!response){
+        return res.status(200).send({
+          type: 'error',
+            message: 'Email  nao encontrado'
+        })
+    }
+        if(senha !== decrypt(response.senha)){
+            return res.status(200).send({
+              type: 'error',
+              message: 'Senha incorreta'
+            })
+    }
+if(response.idCargo === 2){
+    const token = jwt.sign({ id: response.id, cpf: response.cpf, idCargo: response.idCargo}, process.env.TOKEN_KEY, {expiresIn: 300});
+        response.token = token;
+        await response.save();
+
+        return res.status(200).send({
+          type: 'sucess',
+          message: 'Bem-vindo! Login realizado com sucesso!',
+          data: email,
+          token,
+      });
+    }else{
+      return res.status(403).send({
+        type: 'error',
+        message: 'Você não tem permissão para acessar essa rota'
+      })
+    }
+    } catch (error) {
+        return res.status(500).send({
+            message: 'Erro ao tentar fazer login',
+            data: error.message
+        });
+    }
+}
+static findEmail = async (req, res) => {
+  try {
+    const{
+      email
+    } = req.params;
+    const response = await Usuario.findOne({
+      where:{ 
+          email
+  }
+});
+if(response){
+  return res.status(200).send(response)
+}else{  
+  return res.status(403).send({
+    message: 'Email não encontrado'
+  })
+}
+
+  } catch (error) {
+    return res.status(500).send({
+      message: 'Erro ao tentar pegar email',
+      data: error.message
+  });
+  }
+}
 }

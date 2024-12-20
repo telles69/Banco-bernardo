@@ -4,6 +4,7 @@ import filmeRoute from './filmeRoute.js';
 import padraoLugaresRoute from './padraoLugaresRoute.js';
 import salaRoute from './salaRoute.js';
 import sessaoRoute from './sessaoRoute.js';
+import uploadRoute from './uploadRoute.js';
 import usuarioRoute from './usuarioRoute.js';
 
 function routes(app) {
@@ -14,6 +15,7 @@ function routes(app) {
   salaRoute(app);
   usuarioRoute(app);
   sessaoRoute(app);
+  uploadRoute(app);
 }
 
 export default routes;

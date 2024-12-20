@@ -28,6 +28,14 @@ const Usuario = sequelize.define(
       allowNull: false,
       defaultValue: false,
     },
+    senha: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    recuperacao: {
+      type: DataTypes.STRING(4),
+      allowNull: true,
+    },
   },
   {
     freezeTableName: true,
